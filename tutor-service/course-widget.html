@@ -1,0 +1,204 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Course Tutor</title>
+<style>
+  :root { color-scheme: light dark; }
+  * { box-sizing: border-box; }
+  html, body { margin:0; height:100%; font-family:-apple-system,"Segoe UI",Roboto,Arial,sans-serif; background:#f7f7f8; color:#1a1a1a; }
+  @media (prefers-color-scheme: dark) { html, body { background:#16171a; color:#e9e9ea; } }
+  #root { display:flex; flex-direction:column; height:100%; }
+  header { padding:10px 14px; font-weight:600; font-size:14px; border-bottom:1px solid rgba(127,127,127,0.25); display:flex; align-items:center; gap:8px; }
+  header .dot { width:8px; height:8px; border-radius:50%; background:#d6293e; }
+  #messages { flex:1; overflow-y:auto; padding:12px; display:flex; flex-direction:column; gap:10px; }
+  .msg { max-width:90%; padding:8px 12px; border-radius:10px; font-size:14px; line-height:1.45; white-space:pre-wrap; word-wrap:break-word; }
+  .msg.user { align-self:flex-end; background:#d6293e; color:#fff; }
+  .msg.bot { align-self:flex-start; background:rgba(127,127,127,0.15); }
+  .msg.pending { opacity:0.6; }
+  #inputbar { display:flex; gap:8px; padding:10px; border-top:1px solid rgba(127,127,127,0.25); }
+  #inputbar input { flex:1; border:1px solid rgba(127,127,127,0.35); border-radius:8px; padding:8px 10px; font-size:14px; background:transparent; color:inherit; }
+  #inputbar button { border:none; background:#d6293e; color:#fff; border-radius:8px; padding:0 14px; font-size:14px; cursor:pointer; }
+  #inputbar button:disabled { opacity:0.5; cursor:default; }
+  #empty { color:rgba(127,127,127,0.9); font-size:13px; padding:8px; text-align:center; }
+  #modebar { display:flex; gap:6px; padding:8px 10px; border-bottom:1px solid rgba(127,127,127,0.25); }
+  #modebar button { flex:1; background:transparent; border:1px solid rgba(127,127,127,0.35); color:inherit; border-radius:20px; padding:5px 8px; font-size:11px; font-weight:600; cursor:pointer; }
+  #modebar button.active { background:#d6293e; border-color:#d6293e; color:#fff; }
+  .feedback-bar { display: inline-flex; gap: 4px; margin-top: 6px; }
+  .feedback-bar button { border: 1px solid rgba(127,127,127,0.35); background: transparent; color: inherit; border-radius: 20px; padding: 3px 8px; font-size: 12px; cursor: pointer; opacity: 0.7; }
+  .feedback-bar button:hover { opacity: 1; background: rgba(127,127,127,0.15); }
+  .feedback-bar button.chosen { opacity: 1; background: #d6293e; border-color: #d6293e; color: #fff; }
+  .feedback-bar button:disabled { cursor: default; }
+  #videoctx { display:flex; align-items:center; gap:6px; margin:0 10px; padding:6px 10px; border-radius:8px; font-size:12px; background:rgba(214,41,62,0.08); border:1px solid rgba(214,41,62,0.25); }
+  #videoctx[hidden] { display:none; }
+  #videoctx .txt { flex:1; }
+  #videoctx button { border:none; background:transparent; color:inherit; cursor:pointer; opacity:0.6; font-size:13px; }
+  #videoctx button:hover { opacity:1; }
+</style>
+</head>
+<body>
+<div id="root">
+  <header><span class="dot"></span> Course Tutor — ask about __COURSE_TITLE__</header>
+  <div id="modebar">
+    <button id="mode-ask" class="active" data-mode="ask">Ask</button>
+    <button id="mode-guide" data-mode="guide">Guide Me</button>
+    <button id="mode-check" data-mode="check">Check Me</button>
+  </div>
+  <div id="messages"><div id="empty">Ask a question about the course (any lecture, any week).</div></div>
+  <div id="videoctx" hidden><span>&#9654;</span><span class="txt"></span><button type="button" title="Ask about the whole course instead" aria-label="Ask about the whole course instead">&#10005;</button></div>
+  <div id="inputbar">
+    <input id="input" type="text" placeholder="Ask the course tutor..." />
+    <button id="send">Send</button>
+  </div>
+</div>
+<script>
+  const messagesEl = document.getElementById('messages');
+  const inputEl = document.getElementById('input');
+  const sendBtn = document.getElementById('send');
+  const emptyEl = document.getElementById('empty');
+  const history = [];
+  let studentUserId = null;
+  let currentMode = 'ask';
+
+  const modeButtons = document.querySelectorAll('#modebar button');
+  modeButtons.forEach((btn) => {
+    btn.addEventListener('click', () => {
+      currentMode = btn.dataset.mode;
+      modeButtons.forEach((b) => b.classList.toggle('active', b === btn));
+      if (currentMode === 'check' && history.length === 0) {
+        send('Start the comprehension check.');
+      }
+    });
+  });
+
+  window.addEventListener('message', (event) => {
+    if (event.data && event.data.type === 'identify' && event.data.userId) {
+      studentUserId = event.data.userId;
+    }
+  });
+
+  function isRTL(text) { return /[؀-ۿ]/.test(text); }
+
+  function addMessage(role, text) {
+    if (emptyEl) emptyEl.remove();
+    const div = document.createElement('div');
+    div.className = 'msg ' + (role === 'user' ? 'user' : 'bot');
+    div.textContent = text;
+    div.dir = isRTL(text) ? 'rtl' : 'ltr';
+    messagesEl.appendChild(div);
+    messagesEl.scrollTop = messagesEl.scrollHeight;
+    return div;
+  }
+
+  function addFeedbackBar(eventId) {
+    const bar = document.createElement('div');
+    bar.className = 'feedback-bar';
+    const up = document.createElement('button');
+    up.type = 'button';
+    up.textContent = '👍';
+    const down = document.createElement('button');
+    down.type = 'button';
+    down.textContent = '👎';
+    async function rate(rating, btn) {
+      up.disabled = true;
+      down.disabled = true;
+      btn.classList.add('chosen');
+      try {
+        await fetch('/feedback', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ event_id: eventId, student_userid: studentUserId, rating }),
+        });
+      } catch (err) { /* ignore */ }
+    }
+    up.addEventListener('click', () => rate('up', up));
+    down.addEventListener('click', () => rate('down', down));
+    bar.appendChild(up);
+    bar.appendChild(down);
+    return bar;
+  }
+
+  // ---- Video moment: where the student is in an LMS-hosted (Vimeo) lecture ----
+  // Reported by the LMS page itself (see /app/playback-context on the server).
+  // When the video is linked to an ingested lecture, questions go to the
+  // lecture chat with that position, so the answer comes from that moment.
+  const videoCtxEl = document.getElementById('videoctx');
+  let videoCtx = { active: false };
+  let dismissedCtxKey = null;
+  const ctxKey = (c) => c.active ? c.video_ref + '@' + Math.floor(c.position) : null;
+  function fmtTime(sec) {
+    const s = Math.max(0, Math.floor(sec));
+    const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), r = String(s % 60).padStart(2, '0');
+    return h ? h + ':' + String(m).padStart(2, '0') + ':' + r : m + ':' + r;
+  }
+  function usableCtx() {
+    return videoCtx.active && videoCtx.lecture_id && ctxKey(videoCtx) !== dismissedCtxKey ? videoCtx : null;
+  }
+  function renderVideoCtx() {
+    const show = videoCtx.active && ctxKey(videoCtx) !== dismissedCtxKey;
+    videoCtxEl.hidden = !show;
+    if (!show) return;
+    const when = fmtTime(videoCtx.position) + (videoCtx.state === 'paused' ? ' (paused)' : '');
+    videoCtxEl.querySelector('.txt').textContent = videoCtx.lecture_id
+      ? 'Asking about "' + videoCtx.lecture_title + '" at ' + when
+      : 'Watching a video at ' + when + ' (not linked to a lecture here yet, so answers use the whole course)';
+  }
+  async function refreshVideoCtx() {
+    try {
+      const r = await fetch('/app/playback-context', { credentials: 'same-origin' });
+      videoCtx = await r.json();
+    } catch (e) { videoCtx = { active: false }; }
+    renderVideoCtx();
+  }
+  videoCtxEl.querySelector('button').addEventListener('click', () => { dismissedCtxKey = ctxKey(videoCtx); renderVideoCtx(); });
+  refreshVideoCtx();
+  setInterval(refreshVideoCtx, 10000);
+  window.addEventListener('focus', refreshVideoCtx);
+  inputEl.addEventListener('focus', refreshVideoCtx);
+
+  async function send(overrideText) {
+    const text = overrideText !== undefined ? overrideText : inputEl.value.trim();
+    if (!text) return;
+    if (overrideText === undefined) inputEl.value = '';
+    sendBtn.disabled = true;
+    addMessage('user', text);
+    history.push({ role: 'user', content: text });
+    const pending = addMessage('bot', '...');
+    pending.classList.add('pending');
+    try {
+      await refreshVideoCtx(); // use the position at the moment of asking, not up to 10s stale
+      const ctx = usableCtx();
+      const res = await fetch(ctx ? '/chat' : '/chat/course', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(ctx
+          ? { lecture_id: ctx.lecture_id, position: ctx.position, message: text, history, student_userid: studentUserId, mode: currentMode }
+          : { message: text, history, student_userid: studentUserId, mode: currentMode }),
+      });
+      const data = await res.json();
+      pending.classList.remove('pending');
+      if (data.error) {
+        pending.textContent = 'Error: ' + data.error;
+      } else {
+        pending.textContent = data.reply;
+        pending.dir = isRTL(data.reply) ? 'rtl' : 'ltr';
+        history.push({ role: 'assistant', content: data.reply });
+        if (data.event_id && studentUserId) {
+          pending.appendChild(document.createElement('br'));
+          pending.appendChild(addFeedbackBar(data.event_id));
+        }
+      }
+    } catch (err) {
+      pending.classList.remove('pending');
+      pending.textContent = 'Error contacting tutor service.';
+    } finally {
+      sendBtn.disabled = false;
+      inputEl.focus();
+    }
+  }
+
+  sendBtn.addEventListener('click', () => send());
+  inputEl.addEventListener('keydown', (e) => { if (e.key === 'Enter') send(); });
+</script>
+</body>
+</html>

@@ -1,0 +1,12 @@
+# Generated locally, never committed: databases, keys, secrets, passwords
+data/
+moodle/.env
+moodle/setup-result.txt
+tmp-*/
+node_modules/
+
+# HTU's own images (logo, favicon, campus photo) -- add locally, see README
+moodle/assets/htu-*.png
+
+# Downloaded by moodle/install.js (third-party plugin, fetched from its author)
+moodle/assets/tiles/

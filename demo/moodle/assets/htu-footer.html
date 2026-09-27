@@ -1,0 +1,39 @@
+<script>
+// HTU-style header bits Classic doesn't render on its own: the user's name in
+// red next to the avatar, the red home square, and the red search square.
+(function () {
+  var nav = document.querySelector('nav.navbar .container-fluid');
+  if (!nav) return;
+  var root = (window.M && M.cfg && M.cfg.wwwroot) || '';
+
+  var menu = nav.querySelector(':scope > ul.navbar-nav');
+  if (menu && !menu.querySelector('.htu-home')) {
+    var home = document.createElement('a');
+    home.className = 'htu-home';
+    home.href = root + '/';
+    home.title = 'Home';
+    home.innerHTML = '<i class="fa fa-house" aria-hidden="true"></i>';
+    menu.insertBefore(home, menu.firstChild);
+  }
+  if (!nav.querySelector('.htu-search')) {
+    var search = document.createElement('a');
+    search.className = 'htu-search';
+    search.href = root + '/course/search.php';
+    search.title = 'Search courses';
+    search.innerHTML = '<i class="fa fa-magnifying-glass" aria-hidden="true"></i>';
+    nav.appendChild(search);
+  }
+
+  var toggle = document.getElementById('user-menu-toggle');
+  if (toggle && !toggle.querySelector('.htu-username')) {
+    var avatar = toggle.querySelector('.userinitials, .userpicture');
+    var name = avatar && (avatar.getAttribute('title') || avatar.getAttribute('alt') || avatar.getAttribute('aria-label'));
+    if (name) {
+      var span = document.createElement('span');
+      span.className = 'htu-username';
+      span.textContent = name.replace(/^Picture of /i, '');
+      toggle.insertBefore(span, toggle.firstChild);
+    }
+  }
+})();
+</script>

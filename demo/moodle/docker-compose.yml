@@ -1,0 +1,48 @@
+# Local Moodle for testing Rennix LTI launches end-to-end.
+# Moodle: http://localhost:8085  (admin user: "admin", password in .env)
+name: rennix-local-moodle
+
+services:
+  postgres:
+    image: postgres:18-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: moodle
+      POSTGRES_PASSWORD: ${DB_PASS}
+      POSTGRES_DB: moodle
+    volumes:
+      - postgres:/var/lib/postgresql
+    # No published port -- only Moodle talks to it (host 5432 is already taken).
+
+  moodle:
+    image: erseco/alpine-moodle:v5.2.3
+    restart: unless-stopped
+    environment:
+      SITE_URL: http://localhost:8085
+      DB_TYPE: pgsql
+      DB_HOST: postgres
+      DB_NAME: moodle
+      DB_USER: moodle
+      DB_PASS: ${DB_PASS}
+      MOODLE_USERNAME: admin
+      MOODLE_PASSWORD: ${MOODLE_ADMIN_PASSWORD}
+      MOODLE_EMAIL: admin@moodle.local.test
+      MOODLE_SITENAME: HTU-eLearning
+      MOODLE_LANGUAGE: en
+      # Published on 8085 but nginx listens on 8080 inside -- stops Moodle redirect-looping.
+      REVERSEPROXY: "true"
+    ports:
+      - "8085:8080"
+    extra_hosts:
+      # Lets Moodle's server side reach rennix-lti running on the host.
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - moodledata:/var/www/moodledata
+      - moodlehtml:/var/www/html
+    depends_on:
+      - postgres
+
+volumes:
+  postgres:
+  moodledata:
+  moodlehtml:

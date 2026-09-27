@@ -1,0 +1,245 @@
+// HTU eLearning look for theme_classic (local test copy). Matched from
+// screenshots of elearning.htu.edu.jo; HTU's own site runs the paid Lambda theme.
+$htu-red: #FF141D;
+$htu-navy: #0C0C82;
+$htu-slate: #37474F;
+$htu-blue: #1670CC;
+$htu-fa: "Font Awesome 6 Free";
+
+body {
+  // Same campus photo on every page, login included (5.2's login puts it on a panel we hide).
+  background-image: url("/pluginfile.php/1/theme_classic/backgroundimage/1/htu-background.png") !important;
+  padding-top: 0 !important;
+  background-attachment: fixed !important;
+  background-size: cover !important;
+  background-position: center !important;
+}
+
+// ---- Boxed white page floating over the campus photo, red top edge
+#page-wrapper {
+  max-width: 1710px;
+  width: calc(100% - 32px);
+  @media (min-width: 992px) { width: calc(100% - 180px); }
+  margin: 30px auto;
+  background: #fff;
+  border-top: 5px solid $htu-red;
+  border-radius: 6px 6px 0 0;
+  box-shadow: 0 2px 14px rgba(0, 0, 0, .25);
+  height: auto !important;
+  min-height: calc(100vh - 60px);
+}
+#page-wrapper #page { margin-top: 0 !important; padding: 0 25px; }
+
+// ---- Header: row 1 = logo + user (white), row 2 = menu bar (dark slate)
+.navbar.fixed-top {
+  position: relative !important;
+  height: auto !important;   // Classic pins it at 51px
+  padding: 0 !important;
+  background: #fff !important;
+  box-shadow: none !important;
+  border-bottom: 0 !important;
+  z-index: 3 !important;
+  > .container-fluid {
+    display: grid !important;
+    grid-template-columns: 1fr auto;
+    grid-template-areas: "brand user" "menu menu";
+    padding: 0 !important;
+    position: relative;
+  }
+}
+.navbar .navbar-brand {
+  grid-area: brand;
+  margin: 0 !important;
+  padding: 28px 25px !important;
+  .logo { max-height: 68px !important; height: 68px; width: auto; }
+}
+.navbar #usernavigation {
+  grid-area: user;
+  align-items: center;
+  padding-right: 30px;
+  margin: 0 !important;
+  .divider { display: none; }
+  .nav-link, .icon { color: $htu-slate !important; }
+}
+.navbar .htu-username {
+  color: $htu-red;
+  font-weight: 700;
+  font-size: 1.35rem;
+  text-transform: uppercase;
+  margin-right: 12px;
+  white-space: nowrap;
+  &::after { content: " \25BE"; font-size: .9rem; }
+}
+#user-menu-toggle { display: flex; align-items: center; }
+#user-menu-toggle .userinitials, #user-menu-toggle .userpicture {
+  width: 95px !important; height: 95px !important;
+  font-size: 2rem; font-weight: 700;
+  background: #efefef; color: #777; border: 0;
+}
+// the custom menu (Dashboard / My courses) becomes the dark bar
+.navbar .container-fluid > ul.navbar-nav {
+  grid-area: menu;
+  display: flex !important;
+  align-items: stretch;
+  background: $htu-slate;
+  min-height: 62px;
+  margin: 0 !important;
+  padding-right: 62px;
+  .nav-link {
+    color: #fff !important;
+    font-size: 1.05rem;
+    padding: 0 22px !important;
+    height: 100%;
+    display: flex; align-items: center;
+    &:hover { background: rgba(255, 255, 255, .08); }
+  }
+}
+.navbar .htu-home, .navbar .htu-search {
+  background: $htu-red;
+  color: #fff !important;
+  width: 70px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.5rem;
+  text-decoration: none;
+}
+.navbar .htu-search {
+  position: absolute; right: 0; bottom: 0;
+  height: 62px; width: 62px;
+}
+
+// ---- Buttons: HTU uses navy for secondary actions, red for primary
+.btn-primary { background: $htu-red !important; border-color: $htu-red !important; }
+.btn-secondary, .btn-outline-secondary {
+  background: $htu-navy !important;
+  border-color: $htu-navy !important;
+  color: #fff !important;
+  border-radius: 0;
+}
+#region-main-settings-menu .dropdown-toggle, .header-actions-container .dropdown-toggle {
+  background: $htu-red !important; color: #fff !important; border-radius: 0;
+}
+
+// ---- Breadcrumb + headings
+.breadcrumb { background: transparent; padding-left: 0; font-size: .95rem; }
+#page-header .page-header-headings h1 { font-weight: 700; }
+
+// ---- Blocks: grey title bar with a coloured icon square (e.g. "Administration")
+.block .card-title {
+  display: flex !important;
+  align-items: center;
+  font-weight: 700;
+  font-size: 1.1rem;
+  &::before {
+    font-family: $htu-fa; font-weight: 900;
+    content: "\f013";
+    background: #C2185B;
+    color: #fff;
+    width: 34px; height: 34px;
+    display: inline-flex; align-items: center; justify-content: center;
+    margin-right: 12px;
+    border-radius: 2px;
+  }
+}
+.block { background: #f7f7f7; border: 0; }
+.block_navigation { display: none !important; }  // HTU shows no Navigation block
+
+// ---- Course pages: breadcrumb only (no big title card), like HTU
+.path-course-view #page-header {
+  .page-header-headings { display: none; }
+  .card { border: 0; box-shadow: none; background: transparent; }
+  .card-body { padding: 10px 0 0; }
+}
+#region-main { border: 0 !important; box-shadow: none !important; }
+
+// ---- My courses: "Course overview" bar with red asterisk, centered card titles
+#page-my-courses #page-header .page-header-headings { display: none; }
+#page-my-courses #region-main::before {
+  content: "Course overview";
+  display: flex; align-items: center;
+  background: #f0f0f0;
+  border-bottom: 1px solid #e3e3e3;
+  font-weight: 700; font-size: 1.3rem; color: #444;
+  padding: 8px 12px 8px 64px;
+  margin-bottom: 16px;
+  min-height: 52px;
+  background-image: linear-gradient($htu-red, $htu-red);
+  background-size: 46px 38px;
+  background-repeat: no-repeat;
+  background-position: 6px center;
+}
+#page-my-courses #region-main { position: relative; }
+#page-my-courses #region-main::after {
+  content: "\f069";
+  font-family: $htu-fa; font-weight: 900;
+  position: absolute; left: 20px; top: 12px;
+  color: #fff; font-size: 1.3rem;
+}
+.dashboard-card {
+  box-shadow: 0 1px 6px rgba(0, 0, 0, .15);
+  border: 0 !important;
+  .card-img-top, .card-img { height: 220px !important; }
+  .coursename, .multiline { text-align: center; font-weight: 700; font-size: 1.15rem; color: #333 !important; }
+  .categoryname, .text-muted { text-align: center; display: block; }
+}
+
+// ---- Tiles course format: light tiles with a blue top edge, as on HTU
+.format-tiles ul.tiles .tile {
+  background: #f4f8fc !important;
+  border-top: 5px solid $htu-blue !important;
+  box-shadow: 0 1px 5px rgba(0, 0, 0, .18);
+  border-radius: 0;
+  .tile-icon, .icon { color: #666 !important; }
+  .tile-text, .tile-textinner, h3 { color: #333 !important; font-weight: 700; }
+}
+.htu-section-heading {
+  border-left: 8px solid $htu-blue;
+  text-align: center;
+  font-weight: 700;
+  padding: 10px;
+  margin: 10px 0;
+}
+
+// ---- Footer: dark with red top line
+#page-footer {
+  border-top: 5px solid $htu-red;
+  background: #2b2f33 !important;
+  color: #ddd;
+  a { color: $htu-red !important; }
+}
+
+// ---- Login: logo above a single translucent white box, full-width red button
+// (Moodle 5.2's split "Welcome to Moodle" layout is collapsed to HTU's one box.)
+#page-login-index {
+  #page-wrapper { background: transparent; border-top: 0; box-shadow: none; max-width: none; width: 100%; margin: 0; }
+  #page-wrapper #page { padding: 0; background: transparent !important; }
+  #page-content { background: transparent !important; }
+  aside.login-layout-left { display: none !important; }
+  #region-main.login-layout-right {
+    flex: 0 0 100%; max-width: 100%;
+    background: transparent !important;
+    display: flex; justify-content: center; align-items: flex-start;
+    padding: 0 16px;
+  }
+  .login-layout-right-content { width: 100%; max-width: 1010px; }
+  .login-container {
+    position: relative;
+    margin-top: 130px;
+    background: rgba(255, 255, 255, .86) !important;
+    padding: 50px 60px 30px;
+    box-shadow: 0 0 0 10px rgba(255, 255, 255, .35);
+  }
+  #loginlogo { position: absolute; top: -110px; left: 0; right: 0; margin: 0 !important; }
+  #loginlogo img { max-height: 80px; }
+  .loginform h1 { display: none; }
+  .loginform > p.text-muted, .loginform p.text-muted.mb-4 {
+    color: #555 !important; font-size: 2.3rem; font-weight: 700; margin-bottom: 30px !important;
+  }
+  .loginform label { display: none; }  // HTU shows placeholders only
+  .form-control { border-radius: 0; background: #fff; border-color: #fff; padding: 12px; }
+  .toggle-sensitive-btn { background: #fff !important; color: #333 !important; border-color: #fff !important; }
+  #loginbtn { width: 100%; font-size: 1.1rem; padding: 10px; border-radius: 0; }
+  .login-cookiesnotice .btn-link {
+    background: $htu-navy; color: #fff !important; text-decoration: none;
+    padding: 8px 22px !important; border-radius: 0; font-size: 1.1rem;
+  }
+}

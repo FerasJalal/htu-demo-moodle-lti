@@ -1,0 +1,63 @@
+services:
+  tutor:
+    build: .
+    restart: unless-stopped
+    ports:
+      - "3001:3001"
+    environment:
+      # Docker's bridge network resolves IPv6 addresses (e.g. openrouter.ai) but has no
+      # real IPv6 route out -- Node's default DNS ordering tries IPv6 first regardless,
+      # so every such request hung ~45-90s until the app's own timeout fired, before this
+      # was found. Forcing IPv4-first resolution fixed it outright (90s -> 200ms verified).
+      NODE_OPTIONS: --dns-result-order=ipv4first
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      IDENTITY_SECRET: ${IDENTITY_SECRET}
+      LTI_BRIDGE_SECRET: ${LTI_BRIDGE_SECRET}
+      TENANT_ADMIN_SECRET: ${TENANT_ADMIN_SECRET}
+      WEAVIATE_URL: ${WEAVIATE_URL}
+      WEAVIATE_API_KEY: ${WEAVIATE_API_KEY}
+      OPENROUTER_API_KEY: ${OPENROUTER_API_KEY}
+    volumes:
+      - tutor_data:/data
+    depends_on:
+      - weaviate
+
+  weaviate:
+    image: cr.weaviate.io/semitechnologies/weaviate:1.27.0
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8081:8080"
+    environment:
+      QUERY_DEFAULTS_LIMIT: 25
+      AUTHENTICATION_ANONYMOUS_ACCESS_ENABLED: "false"
+      AUTHENTICATION_APIKEY_ENABLED: "true"
+      AUTHENTICATION_APIKEY_ALLOWED_KEYS: ${WEAVIATE_API_KEY}
+      AUTHENTICATION_APIKEY_USERS: "rennix-admin"
+      AUTHORIZATION_ADMINLIST_ENABLED: "true"
+      AUTHORIZATION_ADMINLIST_USERS: "rennix-admin"
+      PERSISTENCE_DATA_PATH: /var/lib/weaviate
+      DEFAULT_VECTORIZER_MODULE: none
+      ENABLE_MODULES: ""
+      CLUSTER_HOSTNAME: node1
+      GOMEMLIMIT: 700MiB
+      LIMIT_RESOURCES: "true"
+    volumes:
+      - weaviate_data:/var/lib/weaviate
+    mem_limit: 900m
+    mem_reservation: 400m
+
+  bge-embeddings:
+    image: ghcr.io/huggingface/text-embeddings-inference:cpu-1.9
+    restart: unless-stopped
+    command: ["--model-id", "BAAI/bge-m3", "--max-batch-tokens", "2048", "--max-client-batch-size", "8"]
+    ports:
+      - "127.0.0.1:8082:80"
+    volumes:
+      - bge_data:/data
+    mem_limit: 1800m
+    mem_reservation: 800m
+
+volumes:
+  tutor_data:
+  weaviate_data:
+  bge_data:

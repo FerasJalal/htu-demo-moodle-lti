@@ -1,0 +1,28 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # Pinned to Node 20 to match Dockerfile's node:20-alpine and the
+      # `engines` range in package.json -- better-sqlite3's native binary
+      # needs to match whatever Node actually runs this in production.
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - run: npm ci
+      - run: npm test
+
+      # Advisory only -- a transitive vulnerability shouldn't block a merge
+      # on its own, but should be visible in the run's output.
+      - run: npm audit --omit=dev --audit-level=high || true

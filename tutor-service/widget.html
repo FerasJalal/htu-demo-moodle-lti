@@ -1,0 +1,285 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Ask AI</title>
+<style>
+  :root {
+    color-scheme: light dark;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0;
+    height: 100%;
+    font-family: -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+    background: #f7f7f8;
+    color: #1a1a1a;
+  }
+  @media (prefers-color-scheme: dark) {
+    html, body { background: #16171a; color: #e9e9ea; }
+  }
+  #root {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+  }
+  #messages {
+    flex: 1;
+    overflow-y: auto;
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .msg {
+    max-width: 90%;
+    padding: 8px 12px;
+    border-radius: 10px;
+    font-size: 14px;
+    line-height: 1.45;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+  }
+  .msg.user {
+    align-self: flex-end;
+    background: #d6293e;
+    color: #fff;
+  }
+  .msg.bot {
+    align-self: flex-start;
+    background: rgba(127,127,127,0.15);
+  }
+  .msg.pending { opacity: 0.6; }
+  .cite-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    margin-top: 6px;
+    border: 1px solid rgba(127,127,127,0.35);
+    background: transparent;
+    color: inherit;
+    border-radius: 20px;
+    padding: 3px 10px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .msg.user .cite-btn { border-color: rgba(255,255,255,0.5); }
+  .cite-btn:hover { background: rgba(127,127,127,0.15); }
+  .feedback-bar { display: inline-flex; gap: 4px; margin-top: 6px; margin-left: 6px; }
+  .feedback-bar button { border: 1px solid rgba(127,127,127,0.35); background: transparent; color: inherit; border-radius: 20px; padding: 3px 8px; font-size: 12px; cursor: pointer; opacity: 0.7; }
+  .feedback-bar button:hover { opacity: 1; background: rgba(127,127,127,0.15); }
+  .feedback-bar button.chosen { opacity: 1; background: #d6293e; border-color: #d6293e; color: #fff; }
+  .feedback-bar button:disabled { cursor: default; }
+  #inputbar {
+    display: flex;
+    gap: 8px;
+    padding: 10px;
+    border-top: 1px solid rgba(127,127,127,0.25);
+  }
+  #inputbar input {
+    flex: 1;
+    border: 1px solid rgba(127,127,127,0.35);
+    border-radius: 8px;
+    padding: 8px 10px;
+    font-size: 14px;
+    background: transparent;
+    color: inherit;
+  }
+  #inputbar button {
+    border: none;
+    background: #d6293e;
+    color: #fff;
+    border-radius: 8px;
+    padding: 0 14px;
+    font-size: 14px;
+    cursor: pointer;
+  }
+  #inputbar button:disabled { opacity: 0.5; cursor: default; }
+  #empty {
+    color: rgba(127,127,127,0.9);
+    font-size: 13px;
+    padding: 8px;
+    text-align: center;
+  }
+  #modebar {
+    display: flex;
+    gap: 6px;
+    padding: 8px 10px;
+    border-bottom: 1px solid rgba(127,127,127,0.25);
+  }
+  #modebar button {
+    flex: 1;
+    background: transparent;
+    border: 1px solid rgba(127,127,127,0.35);
+    color: inherit;
+    border-radius: 20px;
+    padding: 5px 8px;
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  #modebar button.active {
+    background: #d6293e;
+    border-color: #d6293e;
+    color: #fff;
+  }
+</style>
+</head>
+<body>
+<div id="root">
+  <div id="modebar">
+    <button id="mode-ask" class="active" data-mode="ask">Ask</button>
+    <button id="mode-guide" data-mode="guide">Guide Me</button>
+    <button id="mode-check" data-mode="check">Check Me</button>
+  </div>
+  <div id="messages">
+    <div id="empty">Ask a question about this lecture's content.</div>
+  </div>
+  <div id="inputbar">
+    <input id="input" type="text" placeholder="Ask about this video..." />
+    <button id="send">Send</button>
+  </div>
+</div>
+<script>
+  const LECTURE_ID = "__LECTURE_ID__";
+  const messagesEl = document.getElementById('messages');
+  const inputEl = document.getElementById('input');
+  const sendBtn = document.getElementById('send');
+  const emptyEl = document.getElementById('empty');
+  const history = [];
+  let studentUserId = null;
+  let currentPosition = null;
+  let currentMode = 'ask';
+
+  // ---- Learning journey mode (Ask / Guide Me / Check Me) ----
+  const modeButtons = document.querySelectorAll('#modebar button');
+  modeButtons.forEach((btn) => {
+    btn.addEventListener('click', () => {
+      currentMode = btn.dataset.mode;
+      modeButtons.forEach((b) => b.classList.toggle('active', b === btn));
+      if (currentMode === 'check' && history.length === 0) {
+        send('Start the comprehension check.');
+      }
+    });
+  });
+
+  window.addEventListener('message', (event) => {
+    if (event.data && event.data.type === 'identify' && event.data.userId) {
+      studentUserId = event.data.userId;
+      if (typeof event.data.position === 'number') currentPosition = event.data.position;
+    }
+  });
+
+  function isRTL(text) {
+    return /[؀-ۿ]/.test(text);
+  }
+
+  function addMessage(role, text) {
+    if (emptyEl) emptyEl.remove();
+    const div = document.createElement('div');
+    div.className = 'msg ' + (role === 'user' ? 'user' : 'bot');
+    div.textContent = text;
+    div.dir = isRTL(text) ? 'rtl' : 'ltr';
+    messagesEl.appendChild(div);
+    messagesEl.scrollTop = messagesEl.scrollHeight;
+    return div;
+  }
+
+  function addFeedbackBar(eventId) {
+    const bar = document.createElement('div');
+    bar.className = 'feedback-bar';
+    const up = document.createElement('button');
+    up.type = 'button';
+    up.textContent = '👍';
+    const down = document.createElement('button');
+    down.type = 'button';
+    down.textContent = '👎';
+    async function rate(rating, btn, otherBtn) {
+      up.disabled = true;
+      down.disabled = true;
+      btn.classList.add('chosen');
+      try {
+        await fetch('/feedback', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ event_id: eventId, student_userid: studentUserId, rating }),
+        });
+      } catch (err) { /* ignore */ }
+    }
+    up.addEventListener('click', () => rate('up', up, down));
+    down.addEventListener('click', () => rate('down', down, up));
+    bar.appendChild(up);
+    bar.appendChild(down);
+    return bar;
+  }
+
+  function formatTs(seconds) {
+    if (seconds === null || seconds === undefined) return '';
+    const m = Math.floor(seconds / 60);
+    const s = Math.floor(seconds % 60);
+    return m + ':' + String(s).padStart(2, '0');
+  }
+
+  async function send(overrideText) {
+    const text = overrideText !== undefined ? overrideText : inputEl.value.trim();
+    if (!text) return;
+    if (overrideText === undefined) inputEl.value = '';
+    sendBtn.disabled = true;
+    addMessage('user', text);
+    history.push({ role: 'user', content: text });
+    const pending = addMessage('bot', '...');
+    pending.classList.add('pending');
+
+    try {
+      const res = await fetch('/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ lecture_id: LECTURE_ID, message: text, history, student_userid: studentUserId, position: currentPosition, mode: currentMode }),
+      });
+      const data = await res.json();
+      pending.classList.remove('pending');
+      if (data.error) {
+        pending.textContent = 'Error: ' + data.error;
+      } else {
+        pending.textContent = '';
+        const textNode = document.createElement('span');
+        textNode.textContent = data.reply;
+        pending.appendChild(textNode);
+        pending.dir = isRTL(data.reply) ? 'rtl' : 'ltr';
+        history.push({ role: 'assistant', content: data.reply });
+
+        // Real "jump to the exact video location" citation, not just prose --
+        // clicking it seeks the actual player (Vimeo or native) to that moment.
+        if (data.citation && typeof data.citation.start === 'number') {
+          const citeBtn = document.createElement('button');
+          citeBtn.type = 'button';
+          citeBtn.className = 'cite-btn';
+          citeBtn.textContent = '▶ ' + formatTs(data.citation.start);
+          citeBtn.addEventListener('click', () => {
+            window.parent.postMessage({ type: 'seekTo', position: data.citation.start }, '*');
+          });
+          pending.appendChild(document.createElement('br'));
+          pending.appendChild(citeBtn);
+        }
+
+        if (data.event_id && studentUserId) {
+          pending.appendChild(addFeedbackBar(data.event_id));
+        }
+      }
+    } catch (err) {
+      pending.classList.remove('pending');
+      pending.textContent = 'Error contacting tutor service.';
+    } finally {
+      sendBtn.disabled = false;
+      inputEl.focus();
+    }
+  }
+
+  sendBtn.addEventListener('click', () => send());
+  inputEl.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') send();
+  });
+</script>
+</body>
+</html>
