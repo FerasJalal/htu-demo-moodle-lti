@@ -1,12 +1,16 @@
 // HTU eLearning look for theme_classic (local test copy). Matched from
 // screenshots of elearning.htu.edu.jo; HTU's own site runs the paid Lambda theme.
+// Colours, font and box sizes measured from the live site's computed styles (Nov 2026).
+// Open Sans is loaded by a <link> in additionalhtmlhead (setup-htu-look.php): Moodle's SCSS compiler rejects @import url().
 $htu-red: #FF141D;
-$htu-navy: #0C0C82;
-$htu-slate: #37474F;
+$htu-navy: #070078;
+$htu-slate: #3A454B;
 $htu-blue: #1670CC;
 $htu-fa: "Font Awesome 6 Free";
 
 body {
+  font-family: "Open Sans", sans-serif;
+  color: #555;
   // Same campus photo on every page, login included (5.2's login puts it on a panel we hide).
   background-image: url("/pluginfile.php/1/theme_classic/backgroundimage/1/htu-background.png") !important;
   padding-top: 0 !important;
@@ -17,14 +21,13 @@ body {
 
 // ---- Boxed white page floating over the campus photo, red top edge
 #page-wrapper {
-  max-width: 1710px;
+  max-width: 1600px;
   width: calc(100% - 32px);
-  @media (min-width: 992px) { width: calc(100% - 180px); }
+  @media (min-width: 992px) { width: 90%; }
   margin: 30px auto;
   background: #fff;
-  border-top: 5px solid $htu-red;
-  border-radius: 6px 6px 0 0;
-  box-shadow: 0 2px 14px rgba(0, 0, 0, .25);
+  border-top: 4px solid $htu-red;
+  border-radius: 15px 15px 0 0;
   height: auto !important;
   min-height: calc(100vh - 60px);
 }
@@ -108,19 +111,20 @@ body {
 }
 
 // ---- Buttons: HTU uses navy for secondary actions, red for primary
-.btn-primary { background: $htu-red !important; border-color: $htu-red !important; }
+.btn-primary { background: $htu-red !important; border-color: $htu-red !important; border-radius: 2px; }
 .btn-secondary, .btn-outline-secondary {
   background: $htu-navy !important;
   border-color: $htu-navy !important;
   color: #fff !important;
-  border-radius: 0;
+  border-radius: 2px;
 }
 #region-main-settings-menu .dropdown-toggle, .header-actions-container .dropdown-toggle {
   background: $htu-red !important; color: #fff !important; border-radius: 0;
 }
 
 // ---- Breadcrumb + headings
-.breadcrumb { background: transparent; padding-left: 0; font-size: .95rem; }
+.breadcrumb { background: transparent; padding-left: 0; font-size: .95rem; a { color: #555 !important; } }
+#page-my-index #page-header .page-header-headings { display: none; }  // HTU's dashboard has no title card
 #page-header .page-header-headings h1 { font-weight: 700; }
 
 // ---- Blocks: grey title bar with a coloured icon square (e.g. "Administration")
@@ -131,8 +135,8 @@ body {
   font-size: 1.1rem;
   &::before {
     font-family: $htu-fa; font-weight: 900;
-    content: "\f013";
-    background: #C2185B;
+    content: "\f069";  // red asterisk square, as on HTU's dashboard blocks
+    background: $htu-red;
     color: #fff;
     width: 34px; height: 34px;
     display: inline-flex; align-items: center; justify-content: center;
@@ -142,6 +146,10 @@ body {
 }
 .block { background: #f7f7f7; border: 0; }
 .block_navigation { display: none !important; }  // HTU shows no Navigation block
+// If the right column holds only that hidden block (students on course pages), give the content its full width.
+#page-content.blocks-post:not(:has(#block-region-side-post .block:not(.block_navigation))) {
+  #region-main-box { flex: 0 0 100%; max-width: 100%; }  // the empty right column wraps below at 0 height
+}
 
 // ---- Course pages: breadcrumb only (no big title card), like HTU
 .path-course-view #page-header {
@@ -201,8 +209,8 @@ body {
 
 // ---- Footer: dark with red top line
 #page-footer {
-  border-top: 5px solid $htu-red;
-  background: #2b2f33 !important;
+  border-top: 3px solid $htu-red;
+  background: #323A45 !important;
   color: #ddd;
   a { color: $htu-red !important; }
 }

@@ -49,6 +49,7 @@ set_config('navbardark', 0, 'theme_classic');
 set_config('scss', file_get_contents("$assets/htu.scss"), 'theme_classic');
 set_config('custommenuitems', "Dashboard|/my/\nMy courses|/my/courses.php");
 set_config('additionalhtmlfooter', file_get_contents("$assets/htu-footer.html"));
+set_config('additionalhtmlhead', '<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Open+Sans:400,700&display=swap">');
 set_config('displaycategories', 1, 'block_myoverview');   // "School of ..." under each course card
 set_config('frontpageloggedin', '');                       // HTU sends people to My courses, not a front page
 set_config('defaulthomepage', 3);                          // HOMEPAGE_MYCOURSES
