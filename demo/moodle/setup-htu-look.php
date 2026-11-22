@@ -2,7 +2,7 @@
 // Makes the local Moodle look and feel like HTU eLearning (elearning.htu.edu.jo),
 // matched from screenshots of the student side. HTU runs the paid "Lambda"
 // theme; this approximates it on core Classic + custom SCSS instead of copying
-// Lambda's code. Also recreates the course structure (titles only, placeholder
+// Lambda's code. Also recreates the course structure (titles and short demo
 // text) of two HTU courses, with the Rennix LTI tools added to each.
 //
 // Idempotent. Run inside the container:  php /tmp/setup-htu-look.php
@@ -49,6 +49,7 @@ set_config('navbardark', 0, 'theme_classic');
 set_config('scss', file_get_contents("$assets/htu.scss"), 'theme_classic');
 set_config('custommenuitems', "Dashboard|/my/\nMy courses|/my/courses.php");
 set_config('additionalhtmlfooter', file_get_contents("$assets/htu-footer.html"));
+set_config('additionalhtmlhead', '<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Open+Sans:400,700&display=swap">');
 set_config('displaycategories', 1, 'block_myoverview');   // "School of ..." under each course card
 set_config('frontpageloggedin', '');                       // HTU sends people to My courses, not a front page
 set_config('defaulthomepage', 3);                          // HOMEPAGE_MYCOURSES
@@ -114,7 +115,45 @@ function add_page($course, $section, $name, $html) {
     ]);
 }
 $heading = fn($emoji, $text) => "<h4 class=\"htu-section-heading\">$emoji $text</h4>";
-$placeholder = '<p><em>Placeholder content for the local test copy.</em></p>';
+// Demo text for the Programming course. Generic on purpose: HTU's real policies aren't copied.
+$guidelines =
+    '<h2>Course Guidelines</h2><p>This course introduces programming with Java, from variables and conditionals ' .
+    'to object-oriented design. Each module has reading material, short activities and recorded lectures. ' .
+    'Work through them in order, and ask the Rennix Tutor Bot whenever a concept or video moment is unclear.</p>' .
+    '<h2>Attendance Policy</h2><p>Attendance is taken in every lecture and lab session in line with university ' .
+    'regulations. If you miss a session, tell your instructor and catch up on that module\'s material and videos.</p>' .
+    '<h2>Academic Integrity</h2><p>All submitted work must be your own. Discussing ideas with classmates is ' .
+    'encouraged, but sharing or copying code is not. Cite any external source you use.</p>' .
+    '<h2>Lab Rules</h2><p>Arrive on time, save your work often and keep food and drinks away from the computers. ' .
+    'Use the lab hours to practise; your instructor is there to help.</p>';
+$pages = [
+    'Rules and Regulations' =>
+        '<h3>Rules and Regulations</h3><ul>' .
+        '<li>Check the Announcements forum at least twice a week.</li>' .
+        '<li>Submit assignments through Moodle before the deadline; late work follows the university\'s late-submission rules.</li>' .
+        '<li>Use your university email for all course communication.</li>' .
+        '<li>Respect your classmates and instructors in lectures, labs and online forums.</li></ul>',
+    'JAVA Loops' =>
+        '<h3>Loops in Java</h3><p>A loop repeats a block of code while a condition holds. Java has three loop statements:</p><ul>' .
+        '<li><code>for</code>: when you know how many times to repeat, e.g. <code>for (int i = 0; i &lt; 10; i++)</code>.</li>' .
+        '<li><code>while</code>: repeats while a condition is true, checked before each pass.</li>' .
+        '<li><code>do ... while</code>: runs the body once, then checks the condition.</li></ul>' .
+        '<p>Use <code>break</code> to leave a loop early and <code>continue</code> to skip to the next pass.</p>',
+    'JAVA Arrays' =>
+        '<h3>Arrays in Java</h3><p>An array stores a fixed number of values of one type, e.g. ' .
+        '<code>int[] marks = new int[5];</code>. Elements are numbered from 0, so the last one is ' .
+        '<code>marks[marks.length - 1]</code>.</p><p>Loops and arrays work together: a <code>for</code> loop ' .
+        'visits each element, and the enhanced loop <code>for (int m : marks)</code> reads them without an index.</p>',
+    'Introduction to Loops | Video' =>
+        '<p>Why programs repeat work, and how <code>while</code> and <code>for</code> loops express it. ' .
+        'Covers loop conditions, counters and how to avoid infinite loops.</p>',
+    'Mastering the For Loop | Video' =>
+        '<p>The three parts of a <code>for</code> loop (start, condition, update), counting up and down, ' .
+        'and nested loops for patterns and tables.</p>',
+    'Tracing Memory with For Loops | Video' =>
+        '<p>Step through a <code>for</code> loop line by line and track how each variable changes in memory. ' .
+        'A good way to find off-by-one errors.</p>',
+];
 
 function make_course($shortname, $fullname, array $sectionnames, $category) {
     global $DB;
@@ -201,12 +240,8 @@ function add_rennix_tools($course, $section) {
 enrol_test_users($prog);
 if ($created) {
     // Section 0: the course-info area above the tiles.
-    add_page($prog, 0, 'Rules and Regulations', $placeholder);
-    add_label($prog, 0,
-        '<h2>Course Guidelines</h2>' . $placeholder .
-        '<h2>Attendance Policy</h2>' . $placeholder .
-        '<h2>Academic Integrity</h2>' . $placeholder .
-        '<h2>Lab Rules</h2>' . $placeholder);
+    add_page($prog, 0, 'Rules and Regulations', $pages['Rules and Regulations']);
+    add_label($prog, 0, $guidelines);
     add_mod($prog, 0, 'forum', ['name' => 'Announcements', 'type' => 'news', 'forcesubscribe' => 1]);
     add_rennix_tools($prog, 0);
 
@@ -215,9 +250,9 @@ if ($created) {
         add_label($prog, $s, $heading('📚', 'Material'));
         if ($s === 6) {
             add_label($prog, $s, '<p><strong>Loops</strong></p>');
-            add_page($prog, $s, 'JAVA Loops', $placeholder);
+            add_page($prog, $s, 'JAVA Loops', $pages['JAVA Loops']);
             add_label($prog, $s, '<p><strong>Arrays</strong></p>');
-            add_page($prog, $s, 'JAVA Arrays', $placeholder);
+            add_page($prog, $s, 'JAVA Arrays', $pages['JAVA Arrays']);
         }
         add_label($prog, $s, $heading('🧩', 'Activities'));
         add_label($prog, $s, $heading('📹', 'Videos'));
@@ -231,11 +266,20 @@ if ($created) {
                       '<div style="position:relative;padding-top:56.25%"><iframe src="https://player.vimeo.com/video/1084537" ' .
                       'style="position:absolute;inset:0;width:100%;height:100%" frameborder="0" ' .
                       'allow="autoplay; fullscreen; picture-in-picture" allowfullscreen title="Lecture video"></iframe></div>'
-                    : $placeholder);
+                    : $pages[$v]);
             }
         }
     }
 }
+// Courses built by an earlier version of this script still hold placeholder text: swap in the demo text.
+$old = '%Placeholder content for the local test copy.%';
+foreach ($DB->get_records_select('page', 'course = ? AND ' . $DB->sql_like('content', '?'), [$prog->id, $old]) as $p) {
+    if (isset($pages[$p->name])) {
+        $DB->set_field('page', 'content', $pages[$p->name], ['id' => $p->id]);
+    }
+}
+$DB->set_field_select('label', 'intro', $guidelines, 'course = ? AND ' . $DB->sql_like('intro', '?'), [$prog->id, $old]);
+rebuild_course_cache($prog->id, true);
 
 // ---- Apprenticeship for DS & AI 1-1-0-Summer/26 (structure not visible in the screenshots: generic weeks)
 [$appr, $created] = make_course('APPR-DSAI-SUM26', 'Apprenticeship for DS & AI 1-1-0-Summer/26',
